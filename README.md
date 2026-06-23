@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # OutreachAI — AI-Powered Sales Outreach SaaS
 
 A production-ready AI outreach bot SaaS built with Next.js 15, TypeScript, Tailwind CSS, Supabase, Prisma ORM, Gemini AI, Groq, and Resend.
@@ -227,3 +228,6 @@ Your CSV must have a header row. Supported columns:
 | GET/POST | `/api/inbox` | Threads / log reply |
 | GET | `/api/analytics` | Campaign analytics |
 | POST | `/api/follow-ups/process` | Process due follow-ups (cron) |
+=======
+# Outreach-Automation
+>>>>>>> ee9cab5d42554a6f739ea4316fe893470527bb95
