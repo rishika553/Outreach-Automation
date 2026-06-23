@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique @map("supabase_id")
+  email      String   @unique
+  name       String?
+  avatar     String?
+  company    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  campaigns Campaign[]
+  leads     Lead[]
+  emails    Email[]
+  messages  Message[]
+
+  @@map("users")
+}
+
+model Campaign {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  name           String
+  outreachGoal   String         @map("outreach_goal")
+  targetIndustry String?        @map("target_industry")
+  offer          String?
+  emailTemplate  String?        @map("email_template")
+  status         CampaignStatus @default(DRAFT)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads     Lead[]
+  emails    Email[]
+  analytics Analytics[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+model Lead {
+  id         String     @id @default(cuid())
+  userId     String     @map("user_id")
+  campaignId String?    @map("campaign_id")
+  name       String
+  company    String?
+  website    String?
+  email      String
+  linkedin   String?    @map("linkedin_url")
+  industry       String?
+  location       String?
+  notes          String?
+  channelName      String?  @map("channel_name")
+  recentVideoTitle String?  @map("recent_video_title")
+  reasonToInvite   String?  @map("reason_to_invite") @db.Text
+  subscriberCount  Int      @default(0) @map("subscriber_count")
+  followupCount    Int      @default(0) @map("followup_count")
+  lastEmailSent    DateTime? @map("last_email_sent")
+  bookedAt         DateTime? @map("booked_at")
+  status           LeadStatus @default(PENDING)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  research LeadResearch?
+  emails   Email[]
+  followUps FollowUp[]
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([email])
+  @@index([status])
+  @@map("leads")
+}
+
+model LeadResearch {
+  id               String   @id @default(cuid())
+  leadId           String   @unique @map("lead_id")
+  companySummary   String?  @map("company_summary") @db.Text
+  targetAudience   String?  @map("target_audience") @db.Text
+  painPoints       String?  @map("pain_points") @db.Text
+  outreachAngle    String?  @map("outreach_angle") @db.Text
+  personalizedHook String?  @map("personalized_hook") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("lead_research")
+}
+
+model Email {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  campaignId  String?     @map("campaign_id")
+  leadId      String      @map("lead_id")
+  subject     String
+  body        String      @db.Text
+  tone        EmailTone   @default(PROFESSIONAL)
+  status      EmailStatus @default(DRAFT)
+  sentAt      DateTime?   @map("sent_at")
+  deliveredAt DateTime?   @map("delivered_at")
+  openedAt    DateTime?   @map("opened_at")
+  repliedAt   DateTime?   @map("replied_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  lead     Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  reply    EmailReply?
+  followUps FollowUp[]
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([leadId])
+  @@index([status])
+  @@map("emails")
+}
+
+model EmailReply {
+  id              String    @id @default(cuid())
+  emailId         String    @unique @map("email_id")
+  replyBody       String    @map("reply_body") @db.Text
+  sentiment       Sentiment @default(NEUTRAL)
+  summary         String?   @db.Text
+  intent          String?   @db.Text
+  suggestedAction String?   @map("suggested_action") @db.Text
+  repliedAt       DateTime  @map("replied_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@map("email_replies")
+}
+
+model FollowUp {
+  id             String        @id @default(cuid())
+  emailId        String        @map("email_id")
+  leadId         String        @map("lead_id")
+  sequenceNumber Int           @map("sequence_number")
+  subject        String
+  body           String        @db.Text
+  scheduledFor   DateTime      @map("scheduled_for")
+  status         FollowUpStatus @default(PENDING)
+  sentAt         DateTime?     @map("sent_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([emailId])
+  @@index([leadId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("follow_ups")
+}
+
+model Message {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  leadId    String?          @map("lead_id")
+  fromEmail String           @map("from_email")
+  toEmail   String           @map("to_email")
+  subject   String
+  body      String           @db.Text
+  direction MessageDirection
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Analytics {
+  id              String   @id @default(cuid())
+  campaignId      String   @map("campaign_id")
+  date            DateTime @db.Date
+  emailsSent      Int      @default(0) @map("emails_sent")
+  emailsDelivered Int      @default(0) @map("emails_delivered")
+  emailsOpened    Int      @default(0) @map("emails_opened")
+  emailsReplied   Int      @default(0) @map("emails_replied")
+  positiveReplies Int      @default(0) @map("positive_replies")
+  followUpsSent   Int      @default(0) @map("follow_ups_sent")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, date])
+  @@index([campaignId])
+  @@index([date])
+  @@map("analytics")
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum LeadStatus {
+  PENDING
+  GENERATED
+  SENT
+  REPLIED
+  BOOKED
+  REJECTED
+}
+
+enum EmailStatus {
+  DRAFT
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  REPLIED
+  BOUNCED
+  FAILED
+}
+
+enum EmailTone {
+  PROFESSIONAL
+  FRIENDLY
+  STARTUP_FOUNDER
+  SALES
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum FollowUpStatus {
+  PENDING
+  QUEUED
+  SENT
+  CANCELLED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
